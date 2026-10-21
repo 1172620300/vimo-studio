@@ -1,0 +1,62 @@
+# 默认 profile：真实 LLM + 苍源图像/视频（付费）。
+# 借鉴 deepseek-harness：一切皆插件，任何一项都可以在 patch 文件或子 profile 中替换/禁用。
+#   use:     "模块:类"（以 . 开头表示 drama_agent 包内）
+#   enabled: false 可禁用
+#   config:  传给插件的配置；值可写 ${ENV_NAME} 或 ${ENV_NAME:-默认值}
+
+defaults:
+  mode: full              # full 一键成片 / prompts 只出导演稿（不花生成费）
+
+stages: [intake, bible, script, review, assets, storyboard, feed, qc, asset_images, render, assemble]
+
+plugins:
+  # ---- 能力接缝（可替换） ----
+  - use: .providers.llm:OpenAICompatLLMPlugin
+    config:
+      temperature: 0.8
+      max_tokens: 32768       # 推理模型（deepseek-flash）思考也计入输出额度，需要留足
+      thinking: auto          # auto / enabled / disabled；disabled 更快更省
+      concurrency: 4
+
+  - use: .providers.media:CangyuanMediaPlugin
+    config:
+      image:
+        quality: null           # 例如 high / medium，网关不支持时留空
+        models:
+          - id: gpt-image-2
+            label: GPT Image 2
+            sizes: [1024x1024, 1024x1536, 1536x1024]
+            qualities: [auto, high]
+        concurrency: 3
+      video:
+        # 默认模型与清晰度；网页「生成视频」时可按集另选（能力表见 drama_agent/video_models.py）
+        model: ${CANGYUAN_VIDEO_MODEL:-sd17-seedance-2.5-4}
+        resolution: ${CANGYUAN_VIDEO_RESOLUTION:-720p}
+        concurrency: 2
+        # 仅当目标模型参数页列出了额外字段时再加，例如:
+        # extra_body: {some_field: value}
+
+  # ---- 阶段（L0 立项 → L1/L2 写作/资产/分镜 → L3 投喂/质检 → 渲染） ----
+  - use: .stages.writing:IntakeStage
+    config: {max_episodes: 20, cps: 4.5}
+  - use: .stages.writing:BibleStage
+  - use: .stages.writing:ScriptStage
+  - use: .stages.writing:ReviewStage
+    config: {max_rounds: 1}
+  - use: .stages.assets:AssetsStage
+    config: {include_props: false}
+  - use: .stages.storyboard:StoryboardStage
+    config: {max_repair_rounds: 2}
+  - use: .stages.feed:FeedStage
+  - use: .stages.qc:QCStage
+    config: {max_prompt_chars: 2000, block_on_p0: true}
+  - use: .stages.assets:AssetImagesStage
+  - use: .stages.render:RenderStage
+  - use: .stages.render:AssembleStage
+    config: {fps: 24, burn_subtitles: false}
+
+  # ---- 观察者插件 ----
+  - use: .plugins.logging:ConsoleLogPlugin
+  - use: .plugins.webhook:WebhookPlugin
+    enabled: false
+    config: {url: "${DRAMA_WEBHOOK_URL}"}

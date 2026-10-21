@@ -1,0 +1,5 @@
+# 真实 LLM 写剧本/分镜，图像与视频用 mock：验证剧本质量而不花生成费。
+extends: default
+
+replace:
+  .providers.media:CangyuanMediaPlugin: .providers.mock:MockMediaPlugin

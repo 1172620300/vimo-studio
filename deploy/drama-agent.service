@@ -1,0 +1,16 @@
+# 不用 Docker 时的 systemd 部署：/etc/systemd/system/drama-agent.service
+[Unit]
+Description=Drama Agent - short drama one-click generator
+After=network-online.target
+
+[Service]
+Type=simple
+User=drama
+WorkingDirectory=/opt/drama_agent
+EnvironmentFile=/opt/drama_agent/.env
+ExecStart=/opt/drama_agent/.venv/bin/python -m drama_agent serve --host 127.0.0.1 --port 8000
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

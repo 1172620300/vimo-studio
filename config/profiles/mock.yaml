@@ -1,0 +1,6 @@
+# 零成本测试 profile：LLM / 图像 / 视频全部 mock（patch-by-id 替换实现）。
+extends: default
+
+replace:
+  .providers.llm:OpenAICompatLLMPlugin: .providers.mock:MockLLMPlugin
+  .providers.media:CangyuanMediaPlugin: .providers.mock:MockMediaPlugin

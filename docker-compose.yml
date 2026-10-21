@@ -1,0 +1,14 @@
+services:
+  drama:
+    build:
+      context: .
+      args:   # 国内服务器在 .env 里设置这三项即可走镜像源
+        BASE_IMAGE: ${BASE_IMAGE:-python:3.11-slim}
+        APT_MIRROR: ${APT_MIRROR:-}
+        PIP_INDEX_URL: ${PIP_INDEX_URL:-}
+    restart: unless-stopped
+    env_file: .env
+    ports:
+      - "127.0.0.1:8000:8000"   # 只监听本机，由 nginx 反代对外（HTTPS）
+    volumes:
+      - ./data:/data
